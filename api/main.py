@@ -1,5 +1,5 @@
 # /api/main.py
-# Versión "Todo en Uno" con g4f, robusta para Vercel.
+# VERSIÓN FINAL para g4f actualizado en Vercel
 
 import os
 import asyncio
@@ -7,21 +7,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import g4f
 
-# --- 1. CONFIGURACIÓN DE g4f ---
-g4f.debug.logging = False
-g4f.debug.check_version = False
-print("✅ Motor de IA (g4f) configurado.")
-
-# --- 2. CONFIGURACIÓN DEL SERVIDOR FLASK ---
+# --- 1. CONFIGURACIÓN DEL SERVIDOR FLASK ---
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 print("✅ Servidor Flask inicializado.")
 
-# --- 3. LÓGICA DEL ANALIZADOR (integrada con g4f) ---
+# --- 2. LÓGICA DEL ANALIZADOR (adaptada para g4f moderno) ---
 async def analizar_codigo(codigo_a_analizar):
-    """
-    Función asíncrona que llama a g4f para analizar el código.
-    """
     prompt_sistema = """
     Eres un programador senior experto, actuando como un colaborador y mentor. Tu tono es constructivo y respetuoso. Tu misión es analizar el código y devolver un informe estructurado.
     Responde ÚNICA Y EXCLUSIVAMENTE con la siguiente estructura:
@@ -32,40 +24,35 @@ async def analizar_codigo(codigo_a_analizar):
     [SOLUCIONES PROPUESTAS]: ...
     [POSIBLES EXTENSIONES]: ...
     """
-
     try:
-        print("   Enviando código a g4f (Proveedor: GptGo) para análisis...")
+        print("   Enviando código a g4f (versión actualizada, proveedor automático) para análisis...")
         
-        # Llamada a g4f forzando un proveedor estable
+        # Sintaxis para las versiones más nuevas de g4f
         respuesta_ia = await g4f.ChatCompletion.create_async(
             model=g4f.models.gpt_4,
             messages=[
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": codigo_a_analizar}
-            ],
-            provider=g4f.Provider.GptGo, # Forzamos un proveedor fiable
-            timeout=300
+            ]
         )
         
         print("   Análisis recibido de g4f.")
         return {"analisis": respuesta_ia}
 
     except Exception as e:
-        error_msg = f"Hubo un problema al dialogar con el motor g4f. El proveedor puede estar sobrecargado. Detalles: {str(e)}"
+        error_msg = f"Hubo un problema con el motor g4f actualizado. Detalles: {str(e)}"
         print(f"   🚨 {error_msg}")
-        # Devolvemos un JSON de error, para que el frontend no se rompa.
+        import traceback
+        traceback.print_exc()
         return {"error": error_msg}
 
-# --- 4. RUTA DE LA API ---
+# --- 3. RUTA DE LA API ---
 @app.route('/api/execute', methods=['POST'])
 def handle_execution():
-    datos_peticion = request.json
-    codigo = datos_peticion.get("codigo")
-
+    codigo = request.json.get("codigo")
     if not codigo:
-        return jsonify({"error": "No se proporcionó código en la petición."}), 400
-
-    # Lógica para ejecutar la función asíncrona desde Flask
+        return jsonify({"error": "No se proporcionó código."}), 400
+    
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -73,5 +60,4 @@ def handle_execution():
         asyncio.set_event_loop(loop)
     
     resultado = loop.run_until_complete(analizar_codigo(codigo))
-    
     return jsonify(resultado)
