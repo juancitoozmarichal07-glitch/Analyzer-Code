@@ -1,18 +1,20 @@
-# /skillsets/analyzer.py
+# /api/skillsets/analyzer.py
 # Skillset de Análisis de Código. Actúa como un colaborador experto.
+# Versión corregida para funcionar de forma estable en Vercel.
 
 import g4f
 import asyncio
 
-# Versión de g4f que estamos usando: 0.6.3.4
-# No es necesario configurar nada más si ya está instalado.
-# g4f.debug.logging = False # Mantenlo comentado a menos que necesites depurar.
+# --- Configuración de g4f ---
+# Es una buena práctica deshabilitar logs innecesarios en producción.
+g4f.debug.logging = False
+g4f.debug.check_version = False
 
 class Analyzer:
     """
     Un Skillset para A.L.E. que analiza código actuando como un
-    programador senior colaborador, no como un juez.
-    Utiliza g4f para acceder a modelos de lenguaje potentes.
+    programador senior colaborador. Utiliza g4f con un proveedor
+    específico para mayor estabilidad en entornos de nube como Vercel.
     """
     
     async def ejecutar(self, datos_peticion):
@@ -27,8 +29,8 @@ class Analyzer:
             print("   Error: No se encontró 'codigo' en la petición.")
             return {"error": "Petición inválida: Debes incluir el campo 'codigo' para iniciar el análisis."}
 
-        # --- PROMPT DEL SISTEMA ACTUALIZADO ---
-        # Este prompt instruye a la IA para que adopte un tono de colaborador.
+        # --- PROMPT DEL SISTEMA ---
+        # Instruye a la IA para que adopte un tono de colaborador.
         prompt_sistema = """
         Eres un programador senior experto, actuando como un colaborador y mentor.
         Tu tono es constructivo y respetuoso, nunca autoritario.
@@ -50,24 +52,27 @@ class Analyzer:
         """
 
         try:
-            print("   Enviando código al motor de IA para obtener su perspectiva...")
+            print("   Enviando código al motor de IA (Proveedor: GptGo) para obtener su perspectiva...")
             
-            # Llamada asíncrona a g4f
+            # --- LLAMADA A G4F CORREGIDA ---
+            # Forzamos el uso de un proveedor que es conocido por ser más estable en entornos de servidor.
+            # Este es el cambio clave para evitar el error anterior.
             respuesta_ia = await g4f.ChatCompletion.create_async(
-                model=g4f.models.gpt_4, # Modelo potente para análisis de alta calidad
+                model=g4f.models.gpt_4,
                 messages=[
                     {"role": "system", "content": prompt_sistema},
                     {"role": "user", "content": codigo_a_analizar}
                 ],
-                timeout=300 # Tiempo de espera de 5 minutos para análisis complejos
+                provider=g4f.Provider.GptGo, # <-- ¡LA LÍNEA MÁGICA!
+                timeout=300 
             )
             
-            print("   Perspectiva del análisis recibida.")
+            print("   Perspectiva del análisis recibida correctamente.")
             return {"analisis": respuesta_ia}
 
         except Exception as e:
             # Captura de errores de conexión o de la librería g4f
-            error_msg = f"Hubo un problema al dialogar con el motor de IA. Puede estar sobrecargado o sin conexión. Revisa tu conexión a internet. Detalles: {str(e)}"
+            error_msg = f"Hubo un problema al dialogar con el motor de IA. El proveedor puede estar sobrecargado. Por favor, inténtalo de nuevo. Detalles: {str(e)}"
             print(f"   🚨 {error_msg}")
             import traceback
             traceback.print_exc()
