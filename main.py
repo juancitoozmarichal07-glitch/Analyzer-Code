@@ -1,4 +1,5 @@
-# backend/main.py (Tu código + Analyzer integrado)
+# backend/main.py (Versión Robusta para Vercel)
+
 import sys
 import os
 import asyncio
@@ -9,36 +10,29 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# --- Bloque de Rutas Modificado para Vercel ---
+# Esto asegura que Python encuentre la carpeta 'skillsets' sin importar cómo lo ejecute Vercel.
+# Obtenemos la ruta del directorio donde se encuentra main.py
+basedir = os.path.abspath(os.path.dirname(__file__))
+# Añadimos la carpeta 'skillsets' que está dentro de ese directorio al path de Python
+sys.path.insert(0, os.path.join(basedir, 'skillsets'))
+# -------------------------------------------------
 
 # --- Importación de los Skillsets Esenciales ---
+# Ahora estas importaciones funcionarán de forma fiable en Vercel
 from ale_core import ALE_Core
-from skillsets.guardian import Guardian
-from skillsets.oracle import Oracle
-from skillsets.veridian import Veridian
-from skillsets.akinator import Akinator
-from skillsets.analyzer import Analyzer  # <-- 1. AÑADIMOS LA IMPORTACIÓN DEL ANALYZER
+from analyzer import Analyzer
 
 # --- Inicialización del Motor A.L.E. ---
 ale = ALE_Core()
 
-print("Cargando skillsets esenciales en el motor A.L.E...")
-ale.cargar_skillset("guardian", Guardian())
-ale.cargar_skillset("oracle", Oracle())
-ale.cargar_skillset("veridian", Veridian())
-ale.cargar_skillset("akinator", Akinator())
-ale.cargar_skillset("analyzer", Analyzer()) # <-- 2. CARGAMOS EL SKILLSET EN EL MOTOR
+print("Cargando skillsets en el motor A.L.E...")
+ale.cargar_skillset("analyzer", Analyzer())
 
-# Hemos actualizado el mensaje para reflejar que el Analyzer está listo
-print("✅ Servidor listo. A.L.E. está online con todos los skillsets, incluido el Analyzer.") # <-- 3. (Opcional) MENSAJE ACTUALIZADO
+print("✅ Servidor listo. A.L.E. está online.")
 
 # --- Ruta de la API ---
+# El resto del código no necesita cambios.
 @app.route('/api/execute', methods=['POST'])
 def handle_execution():
     datos_peticion = request.json
@@ -52,7 +46,7 @@ def handle_execution():
     return jsonify(respuesta_de_ale)
 
 # --- Arranque del Servidor ---
+# Esta parte es principalmente para desarrollo local, Vercel usa la 'app' directamente.
 if __name__ == "__main__":
-    # Añadimos un mensaje de inicio para mayor claridad
-    print("Iniciando servidor Flask en http://0.0.0.0:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)
+
