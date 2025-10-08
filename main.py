@@ -1,4 +1,4 @@
-# backend/main.py (Versión Robusta para Vercel)
+# backend/main.py (Versión Final y Limpia para Vercel)
 
 import sys
 import os
@@ -10,29 +10,24 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# --- Bloque de Rutas Modificado para Vercel ---
-# Esto asegura que Python encuentre la carpeta 'skillsets' sin importar cómo lo ejecute Vercel.
-# Obtenemos la ruta del directorio donde se encuentra main.py
-basedir = os.path.abspath(os.path.dirname(__file__))
-# Añadimos la carpeta 'skillsets' que está dentro de ese directorio al path de Python
-sys.path.insert(0, os.path.join(basedir, 'skillsets'))
-# -------------------------------------------------
+# --- Bloque de Rutas para Vercel ---
+# Añade la ruta del directorio actual al path de Python para encontrar ale_core
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-# --- Importación de los Skillsets Esenciales ---
-# Ahora estas importaciones funcionarán de forma fiable en Vercel
+# --- Importaciones Esenciales ---
+# Solo importamos lo que realmente existe en nuestro repositorio
 from ale_core import ALE_Core
-from analyzer import Analyzer
+from skillsets.analyzer import Analyzer
 
 # --- Inicialización del Motor A.L.E. ---
 ale = ALE_Core()
 
-print("Cargando skillsets en el motor A.L.E...")
-ale.cargar_skillset("analyzer", Analyzer())
+print("Cargando skillset 'Analyzer' en el motor A.L.E...")
+ale.cargar_skillset("analyzer", Analyzer()) # Solo cargamos el skillset que tenemos
 
-print("✅ Servidor listo. A.L.E. está online.")
+print("✅ Servidor listo. A.L.E. está online con el skillset 'Analyzer'.")
 
 # --- Ruta de la API ---
-# El resto del código no necesita cambios.
 @app.route('/api/execute', methods=['POST'])
 def handle_execution():
     datos_peticion = request.json
@@ -45,8 +40,11 @@ def handle_execution():
     respuesta_de_ale = loop.run_until_complete(ale.procesar_peticion(datos_peticion))
     return jsonify(respuesta_de_ale)
 
-# --- Arranque del Servidor ---
-# Esta parte es principalmente para desarrollo local, Vercel usa la 'app' directamente.
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# --- Ruta para la Raíz (Sirve el index.html) ---
+@app.route('/', methods=['GET'])
+def serve_index():
+    # Esto le dice a Flask que envíe el archivo index.html cuando alguien visita la URL principal
+    return app.send_static_file('index.html')
 
+# Vercel usará la variable 'app' para ejecutar el servidor.
+# El bloque if __name__ == "__main__": es ignorado en producción.
